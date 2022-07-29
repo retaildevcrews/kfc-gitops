@@ -1,0 +1,10 @@
+template: .gitops
+deployments:
+  dev:
+    target: dev
+    values:
+      environment: dev
+      name: flagger
+      namespace: istio-system
+      targets: []
+      workspace: istio-system

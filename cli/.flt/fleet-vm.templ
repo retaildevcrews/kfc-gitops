@@ -1,0 +1,175 @@
+#!/bin/bash
+
+# temporarily set $HOME
+export PIB_ME=pib
+export HOME="/home/$PIB_ME"
+
+{
+####### do not change these values #######
+{{environment}}
+
+  # add command line params last so they don't get overwritten
+  echo 'export PIB_ME=pib'
+  echo 'export PIB_FQDN="{{fqdn}}"'
+  echo 'export PIB_DEBUG="{{debug}}"'
+  echo 'export PIB_REPO="{{repo}}"'
+  echo 'export PIB_BRANCH="{{branch}}"'
+  echo 'export PIB_CLUSTER="{{cluster}}"'
+  echo 'export PIB_ARC_ENABLED="{{arcEnabled}}"'
+  echo 'export PIB_OMS_ENABLED="{{omsEnabled}}"'
+  echo 'export PIB_DAPR_ENABLED="{{daprEnabled}}"'
+  echo 'export PIB_RESOURCE_GROUP="{{group}}"'
+  echo 'export PIB_DO="{{do}}"'
+  echo 'export PIB_SSL="{{ssl}}"'
+  echo 'export PIB_DNS_RG="{{dnsRG}}"'
+  echo 'export PIB_KEYVAULT="{{keyvault}}"'
+  echo ""
+} >> "/home/$PIB_ME/pib.bashrc"
+
+# source the env vars
+source "/home/$PIB_ME/pib.bashrc"
+
+export DEBIAN_FRONTEND=noninteractive
+export HOME=/root
+
+### Needed for Digital Ocean
+if [ "$PIB_DO" = "true" ]
+then
+  useradd -m -s /bin/bash ${PIB_ME}
+  mkdir -p /home/${PIB_ME}/.ssh
+  cp /root/.ssh/authorized_keys /home/${PIB_ME}/.ssh
+
+  # disable login
+  cd /home/${PIB_ME}/.ssh || exit
+  mv authorized_keys ak
+
+  # extract the values to files in .ssh
+  #shellcheck disable=2002
+  cat ak | grep SP_NAME | cut -f4 -d ' ' | base64 -d > sp_name
+  #shellcheck disable=2002
+  cat ak | grep SP_KEY | cut -f4 -d ' ' | base64 -d > sp_key
+  #shellcheck disable=2002
+  cat ak | grep SP_TENANT | cut -f4 -d ' ' | base64 -d > sp_tenant
+
+  # remove the SP_* from authorized keys
+#  cat ak | grep -v SP_ > authorized_keys
+#  rm -f ak
+  mv ak authorized_keys
+
+  # chmod or remove the SP_* files
+  chmod 600 ~/.ssh/sp_*
+
+  cd ..
+fi
+
+cd /home/${PIB_ME} || exit
+
+echo "$(date +'%Y-%m-%d %H:%M:%S')  starting" >> status
+
+echo "${PIB_ME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/pib
+
+touch .sudo_as_admin_successful
+
+cp /usr/share/zoneinfo/America/Chicago /etc/localtime
+
+echo "$(date +'%Y-%m-%d %H:%M:%S')  upgrading" >> status
+apt-get update
+apt-get upgrade -y
+
+# upgrade sshd security
+{
+  echo ""
+  echo "ClientAliveInterval 120"
+  echo "Port 2222"
+  echo "Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr"
+} >> /etc/ssh/sshd_config
+
+# restart sshd
+systemctl restart sshd
+
+echo "$(date +'%Y-%m-%d %H:%M:%S')  user config" >> status
+# backup bashrc
+cp /etc/bash.bashrc /etc/bash.bashrc.bak
+
+# source .bashrc for non-interactive logins
+sed -i "s/\[ -z \"\$PS1\" ] && return//" /etc/bash.bashrc
+
+# add patch to global bashrc
+{
+  echo ""
+  echo "source /home/$PIB_ME/pib.bashrc"
+} >> /etc/bash.bashrc
+
+# configure git CLI
+git config --system user.name pib-gitops
+git config --system user.email pib-gitops@outlook.com
+git config --system core.whitespace blank-at-eol,blank-at-eof,space-before-tab
+git config --system pull.rebase false
+git config --system init.defaultbranch main
+git config --system fetch.prune true
+git config --system core.pager more
+
+# make some directories we will need
+mkdir -p "/home/${PIB_ME}/.ssh"
+mkdir -p "/home/${PIB_ME}/.kube"
+mkdir -p "/home/${PIB_ME}/bin"
+mkdir -p "/home/${PIB_ME}/.local/bin"
+mkdir -p "/home/${PIB_ME}/.k9s"
+mkdir -p /root/.kube
+
+# make some system dirs
+mkdir -p /etc/docker
+mkdir -p /prometheus
+chown -R 65534:65534 /prometheus
+mkdir -p /grafana
+chown -R 472:0 /grafana
+
+# create / add to groups
+groupadd docker
+usermod -aG sudo "${PIB_ME}"
+usermod -aG admin "${PIB_ME}"
+usermod -aG docker "${PIB_ME}"
+gpasswd -a "${PIB_ME}" sudo
+
+# setup oh my bash
+git clone --depth=1 https://github.com/ohmybash/oh-my-bash.git .oh-my-bash
+cp .oh-my-bash/templates/bashrc.osh-template .bashrc
+
+echo "$PIB_PAT" > ".ssh/pib.pat"
+chmod 600 ".ssh/pib.pat"
+
+# change ownership
+chown -R ${PIB_ME}:${PIB_ME} "/home/$PIB_ME"
+
+echo "$(date +'%Y-%m-%d %H:%M:%S')  installing base" >> status
+apt-get update
+apt-get install -y apt-utils dialog apt-transport-https ca-certificates
+
+if [ ! -f .ssh/pib.pat ]
+then
+  echo "$(date +'%Y-%m-%d %H:%M:%S')  pib.pat not found" >> "/home/$PIB_ME/status"
+  echo "pib.pat not found"
+  exit 1
+fi
+
+echo "$(date +'%Y-%m-%d %H:%M:%S')  cloning GitHub repo" >> status
+git clone "https://$(cat .ssh/pib.pat)@github.com/$PIB_REPO" gitops
+
+# checkout the branch
+if [ "$PIB_BRANCH" != "main" ]
+then
+  git -C gitops checkout $PIB_BRANCH
+fi
+
+# change ownership
+chown -R ${PIB_ME}:${PIB_ME} /home/${PIB_ME}
+
+if [ ! -f gitops/vm/setup/setup.sh ]
+then
+  echo "$(date +'%Y-%m-%d %H:%M:%S')  setup.sh not found" >> status
+  echo "setup.sh not found"
+  exit 1
+fi
+
+# run the setup script as pib user
+sudo -HEu pib gitops/vm/setup/setup.sh

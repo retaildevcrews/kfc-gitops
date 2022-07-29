@@ -1,0 +1,11 @@
+template: .gitops
+deployments:
+  dev:
+    target: dev
+    values:
+      name: flux-system
+      namespace: flux-system
+      workspace: flux-system
+      repo: retaildevcrews/pib-beta-fleet
+      branch: kfc
+      targets: [ all ]

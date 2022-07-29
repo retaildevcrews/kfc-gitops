@@ -1,0 +1,13 @@
+template: .gitops
+deployments:
+    dev:
+        target: dev
+        values:
+            app: httpbin
+            environment: dev
+            image: docker.io/kennethreitz/httpbin:latest
+            name: httpbin
+            namespace: httpbin
+            port: 80
+            targets: []
+            workspace: httpbin

@@ -1,0 +1,12 @@
+template: .gitops
+deployments:
+  dev:
+    target: dev
+    values:
+      app: badapp
+      environment: dev
+      image: ghcr.io/retaildevcrews/heartbeat:latest
+      name: badapp
+      namespace: badapp
+      targets: []
+      workspace: badapp

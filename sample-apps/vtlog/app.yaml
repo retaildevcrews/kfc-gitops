@@ -1,0 +1,13 @@
+template: .gitops
+deployments:
+    dev:
+        target: dev
+        values:
+            app: vtlog
+            environment: dev
+            image: ghcr.io/cse-labs/pib-tlog:latest
+            name: vtlog
+            namespace: vtlog
+            port: 8080
+            targets: []
+            workspace: vtlog

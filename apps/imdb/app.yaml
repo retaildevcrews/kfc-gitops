@@ -1,0 +1,14 @@
+template: pib-service
+deployments:
+    dev:
+        target: dev
+        values:
+            app: imdb
+            environment: dev
+            image: ghcr.io/cse-labs/pib-imdb:latest
+            name: imdb
+            namespace: imdb
+            port: 8080
+            targets:
+                - all
+            workspace: imdb

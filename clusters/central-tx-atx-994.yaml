@@ -1,0 +1,14 @@
+kind: Cluster
+metadata:
+  name: central-tx-atx-994
+  labels:
+    environment: dev
+    region: central
+    zone: central-tx
+    district: central-tx-atx
+    store: central-tx-atx-994
+    domain: central-tx-atx-994.pib-labs.dev
+    ingressType: ingressHttps
+    gitopsRepo: retaildevcrews/pib-beta-fleet
+    gitopsBranch: kfc
+spec:

@@ -1,0 +1,12 @@
+template: .gitops
+deployments:
+    dev:
+        target: dev
+        values:
+            app: heartbeat
+            environment: dev
+            name: heartbeat
+            namespace: heartbeat
+            targets:
+                - all
+            workspace: bootstrap

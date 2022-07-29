@@ -1,0 +1,37 @@
+name: flt
+short: Kubernetes Fleet CLI
+long: "Kubernetes Fleet CLI\n\n  A dynamic CLI for automating many Kubernetes dev/test fleet tasks"
+
+commands:
+  - name: az
+    hidden: true
+
+  - name: check
+    hidden: true
+
+  - name: curl
+    hidden: true
+
+  - name: delete
+    hidden: true
+
+  - name: dns
+    hidden: true
+
+  - name: exec
+    hidden: true
+
+  - name: list
+    hidden: true
+
+  - name: patch
+    hidden: true
+
+  - name: pull
+    hidden: true
+
+  - name: ssh
+    hidden: true
+
+  - name: sync
+    hidden: true

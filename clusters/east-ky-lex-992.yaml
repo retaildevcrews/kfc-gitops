@@ -1,0 +1,14 @@
+kind: Cluster
+metadata:
+  name: east-ky-lex-992
+  labels:
+    environment: dev
+    region: east
+    zone: east-ky
+    district: east-ky-lex
+    store: east-ky-lex-992
+    domain: east-ky-lex-992
+    ingressType: ingressHttp
+    gitopsRepo: retaildevcrews/pib-beta-fleet
+    gitopsBranch: kfc
+spec:
