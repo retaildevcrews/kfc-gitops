@@ -20,7 +20,7 @@ spec:
       labels:
         app: imdb
       annotations:
-        version: v-22-07-29-20-53-44
+        version: v-22-07-29-21-07-35
     spec:
       containers:
       - name: imdb
